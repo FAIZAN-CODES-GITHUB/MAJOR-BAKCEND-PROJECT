@@ -34,7 +34,7 @@ const {fullName , email , username , password } = req.body
   }
 
   //Checking If USer Already present or not
-  const existedUser = User.findOne({
+  const existedUser = await User.findOne({
     $or : [{username} , {email}]
   })
    if ( existedUser){
@@ -44,7 +44,12 @@ const {fullName , email , username , password } = req.body
    //Taking avatar(file) thorugh Multer
     const avatarLocalPath = req.files?.avatar[0]?.path;
 
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    let coverImageLocalPath;
+    if( req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+      coverImageLocalPath = req.files.coverImage[0].path
+    }
+
 
     if( !avatarLocalPath){
       throw new ApiError(400 , " Avatar file is Required")
@@ -53,7 +58,9 @@ const {fullName , email , username , password } = req.body
     //Uplaoding it to Cloudinary
 
    const avatar =  await uploadOnCloudinary(avatarLocalPath)
-   await uploadOnCloudinary(coverImageLocalPath)
+   const coverImage = coverImageLocalPath
+    ? await uploadOnCloudinary(coverImageLocalPath)
+    : null;
 
    if(!avatar){
     throw new ApiError(409 , " Avatar and Required")
@@ -64,7 +71,7 @@ const {fullName , email , username , password } = req.body
   const user =  await User.create({
     fullName, 
     avatar : avatar.url,
-    coverImage : coverImage ?.url || "",
+    coverImage : coverImage?.url || "",
     email,
     password,
     username : username.toLowerCase()
