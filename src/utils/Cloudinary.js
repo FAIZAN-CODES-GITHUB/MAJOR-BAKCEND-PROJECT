@@ -1,6 +1,7 @@
     import { v2 as cloudinary } from "cloudinary";
     import { response } from "express";
     import fs from "fs"
+    // import { upload } from "../middlewares/multer.middleware";
     
     //config file taking from env
     cloudinary.config({ 
@@ -14,6 +15,7 @@
 
  //Now uploading file through cloudinary
     const uploadOnCloudinary = async (localFilePath) =>{
+        // console.log(localFilePath)
         try {
             if(!localFilePath) return null;
           //uploading file on cloudinary
@@ -22,11 +24,15 @@
             })
             //file uploaded successfully
             // console.log("File is upload on Cloudinary" , response.url);
-            fs.unlink(localFilePath)
+            fs.unlinkSync(localFilePath)
             return response;
         } catch (error) {
             fs.unlinkSync(localFilePath) //remove locally removed temporary files if upload gets failed
+            //   console.error("File does not exist at path:", localFilePath);
+
             return null;
         }
+        
+   
     }
 export  {uploadOnCloudinary}
