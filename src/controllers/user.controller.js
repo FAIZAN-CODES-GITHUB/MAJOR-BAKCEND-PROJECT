@@ -269,7 +269,7 @@ const changeCurrentPassword = asyncHandler(async(req,res) =>{
 
 const getCurrentUser = asyncHandler(async(req,res)=>{
  return res.status(200)
- .json(200 , req.user, "Current User Fetched Successfully")
+ .json(new ApiResponse(200 , req.user, "Current User Fetched Successfully")  )
 })
 
 const updateAccountDetails = asyncHandler(async(req,res) =>{
@@ -350,6 +350,89 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
 
 })
 
+
+const getUserChannelProfile = asyncHandler(async (req , res)=>{
+    const {username} = req.params
+
+    if( !username?.trim()){
+      throw new ApiError(400 , "Username is Missing")
+    }
+
+
+    const channel = await User.aggregate([
+
+      //Matching User
+      {
+        $match:{
+          username : username?.toLowerCase()
+        }
+      },
+    {
+      //Countng SUbscriber (Through Channels)
+
+      $lookup:{
+        from : "subscriptions",
+        localField : "_id",
+        foreignField: "channel",
+        as : "subscribers"
+
+      }
+    },
+
+    //COunting how many channels user subscribed(Through Subscriber)
+    {
+      $lookup:{
+        from : "subscriptions",
+        localField : "_id",
+        foreignField: "subscriber",
+        as : "subscribedTo"
+
+      }
+    },
+    {
+      //Adding Extra Fields to our user 
+      $addFields : {
+        subscribersCount : {
+          $size : "$subscribers",
+        },
+        channelSubsribedToCount :{
+          $size : "$subscribedTo"
+        },
+
+        isSubscribed:{
+          $cond :{
+            if : {$in :[req.user?._id , "$subscribers.subscriber"]},
+            then : true,
+            else :false
+          }
+        }
+      }
+    },
+    {
+      $project : {
+        fullName : 1,
+        username : 1,
+        subscribersCount : 1,
+        channelSubsribedToCount : 1,
+        isSubscribed : 1,
+        avatar: 1,
+        coverImage : 1,
+        email : 1
+
+      }
+    }
+      
+    ])
+
+    if ( !channel?.length){
+      throw new ApiError(404 , "Channel Does Not Exist")
+    }
+    return res.status(200)
+    .json(
+      new ApiResponse(200 , channel[0] , "User Channel Fteched Succesfully")
+    )
+})
+
 export  {registerUser 
   , loginUser ,
    logoutUser ,
@@ -358,5 +441,6 @@ export  {registerUser
    getCurrentUser ,
    updateAccountDetails,
    updateUserAvatar,
-   updateUserCoverImage
+   updateUserCoverImage,
+   getUserChannelProfile
   }
